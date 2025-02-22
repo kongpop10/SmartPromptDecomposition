@@ -18,7 +18,7 @@ def get_ai_response(prompt: str, model: str = "gpt-4o-mini") -> str:
         response = completion(
             model=model,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=500
+            max_tokens=2000
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -44,7 +44,7 @@ def ai_prompt_decomposition(complex_prompt: str) -> List[str]:
         response = completion(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": decomposition_prompt}],
-            max_tokens=500
+            max_tokens=2000
         )
         
         # Extract JSON array from response
