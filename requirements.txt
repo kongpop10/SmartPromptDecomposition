@@ -1,0 +1,4 @@
+streamlit>=1.31.0
+litellm>=1.30.7
+python-dotenv>=1.0.1
+typing>=3.7.4.3
