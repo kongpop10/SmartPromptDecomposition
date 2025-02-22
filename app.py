@@ -15,9 +15,14 @@ if 'model' not in st.session_state:
 def get_ai_response(prompt: str, model: str = "gpt-4o-mini") -> str:
     """Get response from AI model using liteLLM."""
     try:
+        # System message to enforce standard LaTeX delimiters
+        system_message = {
+            "role": "system",
+            "content": "When including LaTeX equations, use `$$...$$` for display-style equations (on their own line) and `$...$` for inline equations (within text). Do not use square brackets `[...]` for equations unless they are part of regular text."
+        }
         response = completion(
             model=model,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[system_message, {"role": "user", "content": prompt}],
             max_tokens=2000
         )
         return response.choices[0].message.content
@@ -104,41 +109,23 @@ if enable_splitting:
 
 def format_message_content(content: str) -> None:
     """Format and display message content with proper rendering of Markdown, LaTeX, and code blocks."""
-    # Split content by code blocks
-    parts = re.split(r'(```[\w]*\n[\s\S]*?```)', content)
+    # Split content only by code blocks
+    code_block_pattern = r'(```[\w]*\n[\s\S]*?```)'
+    parts = re.split(code_block_pattern, content)
     
     for part in parts:
-        if part.strip():
-            if part.startswith('```') and part.endswith('```'):
-                # Handle code blocks
-                lines = part.split('\n')
-                lang = lines[0][3:].strip()  # Get language if specified
-                code = '\n'.join(lines[1:-1])  # Remove first and last lines (```) and join
-                # Enhanced code block display with line numbers and wrap options
-                st.code(
-                    body=code,
-                    language=lang if lang else "python",
-                    line_numbers=True,
-                    wrap_lines=True
-                )
-            else:
-                # Handle LaTeX blocks (both inline and display)
-                # First, convert bracketed equations to display LaTeX format
-                part = re.sub(r'\[(.*?)\]', lambda m: f"\n$${{\n{m.group(1)}\n}}$$\n", part)
-                
-                # Then handle existing LaTeX blocks
-                latex_parts = re.split(r'(\$\$[\s\S]*?\$\$|\$[^\$\n]*\$)', part)
-                for latex_part in latex_parts:
-                    if latex_part.strip():
-                        if latex_part.startswith('$$') and latex_part.endswith('$$'):
-                            # Display LaTeX
-                            st.latex(latex_part[2:-2].strip())
-                        elif latex_part.startswith('$') and latex_part.endswith('$'):
-                            # Inline LaTeX - wrap in markdown
-                            st.markdown(latex_part)
-                        else:
-                            # Regular markdown
-                            st.markdown(latex_part)
+        if not part.strip():
+            continue
+        if re.match(code_block_pattern, part):
+            # Handle code block
+            lines = part.split('\n')
+            lang = lines[0][3:].strip()  # Get language if specified
+            code = '\n'.join(lines[1:-1]).strip()  # Extract code content
+            st.code(code, language=lang if lang else "python", line_numbers=True, wrap_lines=True)
+        else:
+            # Replace $...$ with \(...\) for inline math to ensure rendering
+            part = re.sub(r'(?<!\$)\$([^$]+)\$(?!\$)', r'\\(\1\\)', part)
+            st.markdown(part, unsafe_allow_html=True)
 
 # Display chat history
 for message in st.session_state.messages:
